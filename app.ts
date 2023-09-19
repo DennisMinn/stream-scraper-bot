@@ -20,8 +20,20 @@ const opts = {
 const client = new Client(opts);
 const manager = new StreamScraperManager();
 
+// Register our event handlers
+client.on('connected', async (address, port) => {
+  console.log(`* Connected to ${address}:${port}`);
+  void manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
+  void joinChannels();
+  setInterval(joinChannels, 1800000);
+});
+
 // Logging
 client.on('chat', (channel, userstate, message, self) => {
+  if (message === '!leaveChannel') {
+    client.part(channel);
+  }
+
   void manager.getChannel(channel.substring(1))
     .then(channelBot => { channelBot.log(userstate.username, message); });
 });
