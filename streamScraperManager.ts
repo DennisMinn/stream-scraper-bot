@@ -1,8 +1,5 @@
 import { StreamScraperBot } from './streamScraperBot.js';
 
-export const joinChannelCommand = '!guard';
-export const leaveChannelCommand = '!discharge';
-
 export class StreamScraperManager {
 
   readonly channels: Map<string, StreamScraperBot>;
@@ -11,7 +8,8 @@ export class StreamScraperManager {
     this.channels = new Map();
   }
 
-  public async addChannel (requestedChannel: string): Promise<void> {
+  public addChannel (requestedChannel: string): void {
+    console.info(`Added ${requestedChannel}`);
     if (this.channels.has(requestedChannel)) {
       return;
     }
@@ -19,15 +17,15 @@ export class StreamScraperManager {
     this.channels.set(requestedChannel, new StreamScraperBot(requestedChannel));
   }
 
-  public async removeChannel (requestedChannel: string): Promise<void> {
-    const channelBot = await this.getChannel(requestedChannel);
+  public removeChannel (requestedChannel: string): void {
+    const channelBot = this.getChannel(requestedChannel);
     channelBot.writeStream.end();
     this.channels.delete(requestedChannel);
   }
 
-  public async getChannel (requestedChannel: string): Promise<StreamScraperBot> {
+  public getChannel (requestedChannel: string): StreamScraperBot {
     if (!this.channels.has(requestedChannel)) {
-      await this.addChannel(requestedChannel);
+      this.addChannel(requestedChannel);
     }
 
     return this.channels.get(requestedChannel);

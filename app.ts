@@ -22,8 +22,9 @@ const manager = new StreamScraperManager();
 
 // Register our event handlers
 client.on('connected', async (address, port) => {
-  console.log(`* Connected to ${address}:${port}`);
-  void manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
+  console.info(`* Connected to ${address}:${port}`);
+  manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
+
   void joinChannels();
   setInterval(joinChannels, 1800000);
 });
@@ -32,25 +33,26 @@ client.on('connected', async (address, port) => {
 client.on('chat', (channel, userstate, message, self) => {
   if (message === '!leaveChannel') {
     client.part(channel);
+    manager.removeChannel(channel);
   }
 
-  void manager.getChannel(channel.substring(1))
-    .then(channelBot => { channelBot.log(userstate.username, message); });
+  const channelBot = manager.getChannel(channel.substring(1));
+  channelBot.log(userstate.username, message);
 });
 
 client.on('timeout', (channel, username, reason, duration, userstate) => {
-  void manager.getChannel(channel.substring(1))
-    .then(channelBot => { channelBot.log(username, 'TIMEOUT'); });
+  const channelBot = manager.getChannel(channel.substring(1));
+  channelBot.log(username, 'TIMEOUT');
 });
 
 client.on('ban', (channel, username, reason, userstate) => {
-  void manager.getChannel(channel.substring(1))
-    .then(channelBot => { channelBot.log(username, 'BAN'); });
+  const channelBot = manager.getChannel(channel.substring(1));
+  channelBot.log(username, 'BAN');
 });
 
 client.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
-  void manager.getChannel(channel.substring(1))
-    .then(channelBot => { channelBot.log(username, `DELELTEDMESSAGE_${deletedMessage}`); });
+  const channelBot = manager.getChannel(channel.substring(1));
+  channelBot.log(username, `DELELTEDMESSAGE_${deletedMessage}`);
 });
 
 client.connect();
@@ -85,20 +87,19 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
     first: '100',
     after: ''
   });
-  const options = {
-    headers: {
-      'Client-ID': CLIENTID,
-      Authorization: `Bearer ${accessToken}`
-    }
-  };
 
   let streams: Array<{ channel: string, category: string, views: number }> = [];
   while (true) {
     const query = queryParameters.toString();
-    const response = await fetch(`${url}?${query}`, options);
+    const response = await fetch(`${url}?${query}`, {
+      headers: {
+        'Client-ID': CLIENTID,
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
 
     if (response.status === 401) {
-      console.log(response.status);
+      console.error(response.status);
       await refreshUserAccessToken();
       continue;
     }
@@ -107,8 +108,8 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
       const ratelimitLimit = response.headers.get('ratelimit-limit');
       const ratelimitRemaining = response.headers.get('ratelimit-remaining');
       const ratelimitReset = response.headers.get('ratelimit-reset');
-      console.log(response.status);
-      console.log({ ratelimitLimit, ratelimitRemaining, ratelimitReset });
+      console.error(response.status);
+      console.error({ ratelimitLimit, ratelimitRemaining, ratelimitReset });
       break;
     }
 
@@ -125,26 +126,28 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
       break;
     }
     queryParameters.set('after', pagination.cursor);
+    break; // Avoid IRC rate limit
   }
 
   const filteredStreams = streams.filter(stream => stream.views > 100);
   return filteredStreams;
 }
 
-async function joinChannels (): Promise<undefined> {
-  console.log('Updating Channels');
+async function joinChannels (): Promise<void> {
+  console.info('Updating Channels');
   const streams = await getStreams();
   for (const stream of streams) {
     if (manager.channels.has(stream.channel)) {
-      const channelBot = await manager.getChannel(stream.channel);
+      const channelBot = manager.getChannel(stream.channel);
       channelBot.category = stream.category;
       continue;
     }
 
     try {
-      await client.join(stream.channel);
-      await manager.addChannel(stream.channel);
-      const channelBot = await manager.getChannel(stream.channel);
+      client.join(stream.channel);
+      manager.addChannel(stream.channel);
+
+      const channelBot = manager.getChannel(stream.channel);
       channelBot.category = stream.category;
     } catch (error) {
       console.error(error);
@@ -152,5 +155,5 @@ async function joinChannels (): Promise<undefined> {
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  console.log('Done Joining');
+  console.info('Done Updating');
 }
