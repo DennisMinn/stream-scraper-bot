@@ -52,7 +52,7 @@ client.on('ban', (channel, username, reason, userstate) => {
 
 client.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
   const channelBot = manager.getChannel(channel.substring(1));
-  channelBot.log(username, `DELELTEDMESSAGE_${deletedMessage}`);
+  channelBot.log(username, `DELETEDMESSAGE_${deletedMessage}`);
 });
 
 async function connect (): Promise<void> {
@@ -100,7 +100,8 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
   });
 
   let streams: Array<{ channel: string, category: string, views: number }> = [];
-  while (true) {
+  let counter = 0
+  while (counter < 2) {
     const query = queryParameters.toString();
     const response = await fetch(`${url}?${query}`, {
       headers: {
@@ -137,7 +138,7 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
       break;
     }
     queryParameters.set('after', pagination.cursor);
-    break; // Avoid IRC rate limit
+    counter = counter + 1; // Avoid IRC rate limit
   }
 
   const filteredStreams = streams.filter(stream => stream.views > 100);
