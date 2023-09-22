@@ -26,7 +26,7 @@ client.on('connected', async (address, port) => {
   manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
 
   void joinChannels();
-  setInterval(joinChannels, 1800000);
+  setInterval(joinChannels, 300000);
 });
 
 // Logging
