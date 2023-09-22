@@ -55,7 +55,17 @@ client.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
   channelBot.log(username, `DELELTEDMESSAGE_${deletedMessage}`);
 });
 
-client.connect();
+async function connect (): Promise<void> {
+  try {
+    await client.connect();
+  } catch (error) {
+    console.error(error);
+    await refreshUserAccessToken();
+    client.opts.identity.password = `oauth:${accessToken}`;
+
+    await connect();
+  }
+}
 
 async function refreshUserAccessToken (): Promise<undefined> {
   const url = 'https://id.twitch.tv/oauth2/token';
@@ -78,6 +88,7 @@ async function refreshUserAccessToken (): Promise<undefined> {
 
   accessToken = token.access_token;
   refreshToken = token.refresh_token;
+  console.info({ accessToken, refreshToken });
 }
 
 async function getStreams (): Promise<Array<{ channel: string, category: string, views: number }>> {
@@ -157,3 +168,5 @@ async function joinChannels (): Promise<void> {
   }
   console.info('Done Updating');
 }
+
+connect();
