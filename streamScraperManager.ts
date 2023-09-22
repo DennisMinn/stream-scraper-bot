@@ -9,11 +9,11 @@ export class StreamScraperManager {
   }
 
   public addChannel (requestedChannel: string): void {
-    console.info(`Added ${requestedChannel}`);
     if (this.channels.has(requestedChannel)) {
       return;
     }
 
+    console.info(`Added ${requestedChannel}`);
     this.channels.set(requestedChannel, new StreamScraperBot(requestedChannel));
   }
 

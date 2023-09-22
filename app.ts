@@ -100,8 +100,7 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
   });
 
   let streams: Array<{ channel: string, category: string, views: number }> = [];
-  let counter = 0;
-  while (counter < 2) {
+  while (true) {
     const query = queryParameters.toString();
     const response = await fetch(`${url}?${query}`, {
       headers: {
@@ -134,14 +133,17 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
 
     streams = streams.concat(extractedStreams);
 
-    if (Object.keys(pagination).length === 0) {
+    if (
+      Object.keys(pagination).length === 0 ||
+      extractedStreams[extractedStreams.length - 1].views < 1000
+    ) {
       break;
     }
     queryParameters.set('after', pagination.cursor);
-    counter = counter + 1; // Avoid IRC rate limit
   }
 
-  const filteredStreams = streams.filter(stream => stream.views > 100);
+  const filteredStreams = streams.filter(stream => stream.views > 1000);
+  console.info(`Streams: ${filteredStreams.length}`);
   return filteredStreams;
 }
 
@@ -163,9 +165,10 @@ async function joinChannels (): Promise<void> {
       channelBot.category = stream.category;
     } catch (error) {
       console.error(error);
+      break;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
   console.info('Done Updating');
 }
