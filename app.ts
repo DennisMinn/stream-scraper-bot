@@ -100,7 +100,7 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
   });
 
   let streams: Array<{ channel: string, category: string, views: number }> = [];
-  let counter = 0
+  let counter = 0;
   while (counter < 2) {
     const query = queryParameters.toString();
     const response = await fetch(`${url}?${query}`, {
@@ -156,7 +156,7 @@ async function joinChannels (): Promise<void> {
     }
 
     try {
-      client.join(stream.channel);
+      await client.join(stream.channel);
       manager.addChannel(stream.channel);
 
       const channelBot = manager.getChannel(stream.channel);
@@ -170,4 +170,4 @@ async function joinChannels (): Promise<void> {
   console.info('Done Updating');
 }
 
-connect();
+void connect();
