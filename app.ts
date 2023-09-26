@@ -9,6 +9,9 @@ let refreshToken = process.env.STREAM_SCRAPER_REFRESH_TOKEN;
 
 // Define configuration options
 const opts = {
+  connection: {
+    reconnect: true
+  },
   identity: {
     username: process.env.STREAM_SCRAPER_USERNAME,
     password: `oauth:${accessToken}`
@@ -31,6 +34,10 @@ client.on('connected', async (address, port) => {
 
 // Logging
 client.on('chat', (channel, userstate, message, self) => {
+  if (self) {
+    return;
+  }
+
   if (message === '!leaveChannel') {
     client.part(channel);
     manager.removeChannel(channel);
@@ -59,11 +66,11 @@ async function connect (): Promise<void> {
   try {
     await client.connect();
   } catch (error) {
-    console.error(error);
-    await refreshUserAccessToken();
+    console.error(`Connect Error: ${error}`);
     client.opts.identity.password = `oauth:${accessToken}`;
-
     await connect();
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 }
 
@@ -88,7 +95,10 @@ async function refreshUserAccessToken (): Promise<undefined> {
 
   accessToken = token.access_token;
   refreshToken = token.refresh_token;
-  console.info({ accessToken, refreshToken });
+  const expiration = token.expires_in;
+  console.info({ accessToken, refreshToken, expiration });
+  await new Promise((resolve) => setTimeout(resolve, expiration * 1000));
+  void refreshUserAccessToken();
 }
 
 async function getStreams (): Promise<Array<{ channel: string, category: string, views: number }>> {
@@ -110,16 +120,15 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
     });
 
     if (response.status === 401) {
-      console.error(response.status);
-      await refreshUserAccessToken();
-      continue;
+      console.error(`Authorization Error ${response.status}`);
+      break;
     }
 
     if (response.status === 429) {
       const ratelimitLimit = response.headers.get('ratelimit-limit');
       const ratelimitRemaining = response.headers.get('ratelimit-remaining');
       const ratelimitReset = response.headers.get('ratelimit-reset');
-      console.error(response.status);
+      console.error(`Limit Error ${response.status}`);
       console.error({ ratelimitLimit, ratelimitRemaining, ratelimitReset });
       break;
     }
@@ -164,8 +173,7 @@ async function joinChannels (): Promise<void> {
       const channelBot = manager.getChannel(stream.channel);
       channelBot.category = stream.category;
     } catch (error) {
-      console.error(error);
-      break;
+      console.error(`Join Error with ${stream.channel}: ${error}`);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -173,4 +181,5 @@ async function joinChannels (): Promise<void> {
   console.info('Done Updating');
 }
 
+void refreshUserAccessToken();
 void connect();
