@@ -9,9 +9,6 @@ let refreshToken = process.env.STREAM_SCRAPER_REFRESH_TOKEN;
 
 // Define configuration options
 const opts = {
-  connection: {
-    reconnect: true
-  },
   identity: {
     username: process.env.STREAM_SCRAPER_USERNAME,
     password: `oauth:${accessToken}`
@@ -44,7 +41,7 @@ client.on('chat', (channel, userstate, message, self) => {
 
   if (message === '!leaveChannel') {
     client.part(channel);
-    manager.removeChannel(channel);
+    manager.removeChannel(channel.substring(1));
   }
 
   const channelBot = manager.getChannel(channel.substring(1));
@@ -161,10 +158,12 @@ async function joinChannels (): Promise<void> {
   console.info('Updating Channels');
   const streams = await getStreams();
   for (const stream of streams) {
-    try {
-      await client.join(stream.channel);
-    } catch (error) {
-      console.log(`Join Error with ${stream.channel}: ${error}`);
+    if (!client.channels.includes(stream.channel)) {
+      try {
+        await client.join(stream.channel);
+      } catch (error) {
+        console.log(`Join Error with ${stream.channel}: ${error}`);
+      }
     }
 
     if (!manager.channels.has(stream.channel)) {
