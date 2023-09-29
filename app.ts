@@ -26,10 +26,8 @@ const manager = new StreamScraperManager();
 // Register our event handlers
 client.on('connected', async (address, port) => {
   console.info(`* Connected to ${address}:${port}`);
-  manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
-
+  await manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
   void joinChannels();
-  setInterval(joinChannels, 300000);
 });
 
 // Logging
@@ -66,12 +64,13 @@ async function connect (): Promise<void> {
   try {
     await client.connect();
   } catch (error) {
-    console.error(`Connect Error: ${error}`);
+    console.log(`Connect Error: ${error}`);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     client.opts.identity.password = `oauth:${accessToken}`;
     await connect();
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
   }
+  console.log('connect exit');
 }
 
 async function refreshUserAccessToken (): Promise<undefined> {
@@ -120,7 +119,7 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
     });
 
     if (response.status === 401) {
-      console.error(`Authorization Error ${response.status}`);
+      console.log(`Authorization Error ${response.status}`);
       break;
     }
 
@@ -128,8 +127,8 @@ async function getStreams (): Promise<Array<{ channel: string, category: string,
       const ratelimitLimit = response.headers.get('ratelimit-limit');
       const ratelimitRemaining = response.headers.get('ratelimit-remaining');
       const ratelimitReset = response.headers.get('ratelimit-reset');
-      console.error(`Limit Error ${response.status}`);
-      console.error({ ratelimitLimit, ratelimitRemaining, ratelimitReset });
+      console.log(`Limit Error ${response.status}`);
+      console.log({ ratelimitLimit, ratelimitRemaining, ratelimitReset });
       break;
     }
 
@@ -173,7 +172,7 @@ async function joinChannels (): Promise<void> {
       const channelBot = manager.getChannel(stream.channel);
       channelBot.category = stream.category;
     } catch (error) {
-      console.error(`Join Error with ${stream.channel}: ${error}`);
+      console.log(`Join Error with ${stream.channel}: ${error}`);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -183,3 +182,4 @@ async function joinChannels (): Promise<void> {
 
 void refreshUserAccessToken();
 void connect();
+setInterval(joinChannels, 300000);
