@@ -26,8 +26,14 @@ const manager = new StreamScraperManager();
 // Register our event handlers
 client.on('connected', async (address, port) => {
   console.info(`* Connected to ${address}:${port}`);
-  await manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
-  void joinChannels();
+  manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
+  joinChannels();
+});
+
+client.on('disconnected', async (reason) => {
+  console.log(`Disconnected: ${reason}`);
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  await connect();
 });
 
 // Logging
@@ -65,12 +71,8 @@ async function connect (): Promise<void> {
     await client.connect();
   } catch (error) {
     console.log(`Connect Error: ${error}`);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     client.opts.identity.password = `oauth:${accessToken}`;
-    await connect();
   }
-  console.log('connect exit');
 }
 
 async function refreshUserAccessToken (): Promise<undefined> {
@@ -159,21 +161,18 @@ async function joinChannels (): Promise<void> {
   console.info('Updating Channels');
   const streams = await getStreams();
   for (const stream of streams) {
-    if (manager.channels.has(stream.channel)) {
-      const channelBot = manager.getChannel(stream.channel);
-      channelBot.category = stream.category;
-      continue;
-    }
-
     try {
       await client.join(stream.channel);
-      manager.addChannel(stream.channel);
-
-      const channelBot = manager.getChannel(stream.channel);
-      channelBot.category = stream.category;
     } catch (error) {
       console.log(`Join Error with ${stream.channel}: ${error}`);
     }
+
+    if (!manager.channels.has(stream.channel)) {
+      manager.addChannel(stream.channel);
+    }
+
+    const channelBot = manager.getChannel(stream.channel);
+    channelBot.category = stream.category;
 
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
