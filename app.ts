@@ -29,7 +29,7 @@ client.on('connected', async (address, port) => {
 
 client.on('disconnected', async (reason) => {
   console.log(`Disconnected: ${reason}`);
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 10000));
   await connect();
 });
 
@@ -95,7 +95,7 @@ async function refreshUserAccessToken (): Promise<undefined> {
   refreshToken = token.refresh_token;
   const expiration = token.expires_in;
   console.info({ accessToken, refreshToken, expiration });
-  await new Promise((resolve) => setTimeout(resolve, expiration * 1000));
+  await new Promise((resolve) => setTimeout(resolve, (expiration - 1800) * 1000));
   void refreshUserAccessToken();
 }
 
@@ -163,6 +163,10 @@ async function joinChannels (): Promise<void> {
         await client.join(stream.channel);
       } catch (error) {
         console.log(`Join Error with ${stream.channel}: ${error}`);
+
+        if (error == 'No response from Twitch.'){
+          break;
+        }
       }
     }
 
