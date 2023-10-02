@@ -158,7 +158,7 @@ async function joinChannels (): Promise<void> {
   console.info('Updating Channels');
   const streams = await getStreams();
   for (const stream of streams) {
-    if (!client.channels.includes(stream.channel)) {
+    if (!client.channels.includes(`#${stream.channel}`)) {
       try {
         await client.join(stream.channel);
       } catch (error) {
