@@ -164,7 +164,10 @@ async function joinChannels (): Promise<void> {
       } catch (error) {
         console.log(`Join Error with ${stream.channel}: ${error}`);
 
-        if (error == 'No response from Twitch.'){
+        if (
+          error === 'No response from Twitch.' ||
+          error === 'Not connected to server.'
+        ) {
           break;
         }
       }
