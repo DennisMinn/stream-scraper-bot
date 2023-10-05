@@ -64,11 +64,12 @@ client.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
 });
 
 async function connect (): Promise<void> {
+  client.opts.identity.password = `oauth:${accessToken}`;
+
   try {
     await client.connect();
   } catch (error) {
     console.log(`Connect Error: ${error}`);
-    client.opts.identity.password = `oauth:${accessToken}`;
   }
 }
 
