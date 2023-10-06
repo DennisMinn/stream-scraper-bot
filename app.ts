@@ -24,7 +24,6 @@ const manager = new StreamScraperManager();
 client.on('connected', async (address, port) => {
   console.info(`* Connected to ${address}:${port}`);
   manager.addChannel(process.env.STREAM_SCRAPER_USERNAME);
-  joinChannels();
 });
 
 client.on('disconnected', async (reason) => {
@@ -37,11 +36,6 @@ client.on('disconnected', async (reason) => {
 client.on('chat', (channel, userstate, message, self) => {
   if (self) {
     return;
-  }
-
-  if (message === '!leaveChannel') {
-    client.part(channel);
-    manager.removeChannel(channel.substring(1));
   }
 
   const channelBot = manager.getChannel(channel.substring(1));
@@ -167,10 +161,11 @@ async function joinChannels (): Promise<void> {
       } catch (error) {
         console.log(`Join Error with ${stream.channel}: ${error}`);
 
-        if (
-          error === 'No response from Twitch.' ||
-          error === 'Not connected to server.'
-        ) {
+        if (error === 'No response from Twitch.') {
+          break;
+        }
+
+        if (error === 'Not connected to server.') {
           break;
         }
       }
