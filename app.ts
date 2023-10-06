@@ -64,7 +64,8 @@ client.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
 });
 
 async function connect (): Promise<void> {
-  client.opts.identity.password = `oauth:${accessToken}`;
+  const options = client.getOptions();
+  options.identity.password = `oauth:${accessToken}`;
 
   try {
     await client.connect();
@@ -159,7 +160,8 @@ async function joinChannels (): Promise<void> {
   console.info('Updating Channels');
   const streams = await getStreams();
   for (const stream of streams) {
-    if (!client.channels.includes(`#${stream.channel}`)) {
+    const joinedChannels = client.getChannels();
+    if (!joinedChannels.includes(`#${stream.channel}`)) {
       try {
         await client.join(stream.channel);
       } catch (error) {
