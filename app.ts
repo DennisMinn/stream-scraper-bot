@@ -13,12 +13,17 @@ const opts = {
     username: process.env.STREAM_SCRAPER_USERNAME,
     password: `oauth:${accessToken}`
   },
+  connection: {
+    reconnect: false
+  },
   channels: [
     process.env.STREAM_SCRAPER_USERNAME
   ]
 };
 const client = new Client(opts);
 const manager = new StreamScraperManager();
+
+console.log(Client);
 
 // Register our event handlers
 client.on('connected', async (address, port) => {
@@ -58,9 +63,6 @@ client.on('messagedeleted', (channel, username, deletedMessage, userstate) => {
 });
 
 async function connect (): Promise<void> {
-  const options = client.getOptions();
-  options.identity.password = `oauth:${accessToken}`;
-
   try {
     await client.connect();
   } catch (error) {
@@ -87,10 +89,18 @@ async function refreshUserAccessToken (): Promise<undefined> {
   const response = await fetch(url, options);
   const token = await response.json();
 
+  // Assign new token
   accessToken = token.access_token;
   refreshToken = token.refresh_token;
+
   const expiration = token.expires_in;
   console.info({ accessToken, refreshToken, expiration });
+
+  // Update Client
+  const clientOptions = client.getOptions();
+  clientOptions.identity.password = `oauth:${accessToken}`;
+
+  // Set timer
   await new Promise((resolve) => setTimeout(resolve, (expiration - 1800) * 1000));
   void refreshUserAccessToken();
 }
