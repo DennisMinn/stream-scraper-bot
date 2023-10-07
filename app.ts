@@ -23,7 +23,7 @@ const opts = {
 const client = new Client(opts);
 const manager = new StreamScraperManager();
 
-console.log(Client);
+console.log(client);
 
 // Register our event handlers
 client.on('connected', async (address, port) => {
